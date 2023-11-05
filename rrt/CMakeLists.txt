@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(lab6_pkg)
+project(rrt)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -54,6 +54,17 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/rrt_node.py
   DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install launch files.
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
+# Install config files.
+install(DIRECTORY
+  config
+  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

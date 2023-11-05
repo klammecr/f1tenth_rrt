@@ -5,9 +5,11 @@
 #include "rrt/rrt.h"
 
 // Destructor of the RRT class
-RRT::~RRT() {
+RRT::~RRT()
+{
     // Do something in here, free up used memory, print message, etc.
     RCLCPP_INFO(rclcpp::get_logger("RRT"), "%s\n", "RRT shutting down");
+
 }
 
 // Constructor of the RRT class
@@ -15,17 +17,21 @@ RRT::RRT(): rclcpp::Node("rrt_node"), gen((std::random_device())()) {
 
     // ROS publishers
     // TODO: create publishers for the the drive topic, and other topics you might need
+    // std::string drive_topic = "/drive";
 
-    // ROS subscribers
-    // TODO: create subscribers as you need
-    string pose_topic = "ego_racecar/odom";
-    string scan_topic = "/scan";
-    pose_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-      pose_topic, 1, std::bind(&RRT::pose_callback, this, std::placeholders::_1));
-    scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-      scan_topic, 1, std::bind(&RRT::scan_callback, this, std::placeholders::_1));
+    // // ROS subscribers
+    // // TODO: create subscribers as you need
+    // string pose_topic = "ego_racecar/odom";
+    // string scan_topic = "/scan";
+    // pose_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+    //   pose_topic, 1, std::bind(&RRT::pose_callback, this, std::placeholders::_1));
+    // scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+    //   scan_topic, 1, std::bind(&RRT::scan_callback, this, std::placeholders::_1));
 
-    // TODO: create a occupancy grid
+    // // TODO: create a occupancy grid
+    // double sizeY = 0;
+    // double sizeX = 0;
+    // int *m_grid = new int[sizeX*sizeY];
 
     RCLCPP_INFO(rclcpp::get_logger("RRT"), "%s\n", "Created new RRT Object.");
 }
@@ -38,6 +44,7 @@ void RRT::scan_callback(const sensor_msgs::msg::LaserScan::ConstSharedPtr scan_m
     //
 
     // TODO: update your occupancy grid
+
 }
 
 void RRT::pose_callback(const nav_msgs::msg::Odometry::ConstSharedPtr pose_msg) {
