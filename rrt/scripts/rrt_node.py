@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 """
 This file contains the class definition for tree nodes and RRT
 Before you start, please read: https://arxiv.org/pdf/1105.1186.pdf
@@ -61,16 +63,31 @@ class RRT(Node):
             1)
 
         # Some paramters
-        # TODO: Put these in a config file?
-        self.map_res = 0.05 # meters per pixel
-        self.grid_w = 3 # meters
-        self.grid_h = 3 # meters
-        self.N      =  250 # Number of points to sample for the tree
-        self.step_size = 0.25
-        self.goal_thresh = 0.01 # Euclid. distance threshold to the goal
+        self.declare_parameters(
+            namespace='',
+            parameters=[
+                ('map_res', 0.05),
+                ('grid_w', 2),
+                ("grid_h", 4),
+                ("num_pts", 250),
+                ('step_size', 0.25),
+                ('goal_thresh', 0.05),
+                ('max_speed', 2.0),
+                ('L', 3.0)
+            ]
+        )
+
+        # Set paramters from config file
+        self.map_res      = self.get_parameter("map_res").value # Dimensions in meters of occ griid
+        self.grid_w       = self.get_parameter("grid_w").value # Width in meters of grid
+        self.grid_h       = self.get_parameter("grid_h").value # Height in meters of grid
+        self.N            = self.get_parameter("num_pts").value # Number of points to sample for the tree
+        self.step_size    = self.get_parameter("step_size").value
+        self.goal_thresh  = self.get_parameter("goal_thresh").value
+        self.m_max_speed  = self.get_parameter("max_speed").value
+        self.m_L          = self.get_parameter("L").value
         self.m_marker_idx = 0
-        self.m_max_speed = 3.0
-        self.m_L = 2
+        self.x_goal       = None
 
         # publishers
         # Ceate a drive message publisher, and other publishers that you might need
@@ -128,7 +145,7 @@ class RRT(Node):
         occ_grid_msg.info.origin.orientation.w = 0.7071068 
         occ_grid_msg.info.origin.orientation.z = -0.7071068
         occ_grid_msg.header.frame_id = "/ego_racecar/laser"
-
+        print(f"Number of Points: {self.N}")
         # Create an instaneous occupancy gird
         self.inst_occ_grid = np.ones((int(self.grid_h/self.map_res), int(self.grid_w/self.map_res)))
 
@@ -324,7 +341,8 @@ class RRT(Node):
         # Early exit
         if self.inst_occ_grid is None:
             return None
-        
+    
+        ### Acutal Loop ####
         # 1. Sample in free space
         xs, ys = self.sample()
 
@@ -346,9 +364,9 @@ class RRT(Node):
         tree.append(start_pt)
 
         # Find a goal node that is near the edge of free space
-        x_goal = self.find_goal_node()
+        self.x_goal = self.find_goal_node()
 
-        for i in range(1, self.N, 1):
+        for i in range(1, len(xs)-1, 1):
             # 2. Get the sampled point
             x_rand = np.array([xs[i], ys[i]])
 
@@ -360,7 +378,9 @@ class RRT(Node):
 
             # 5. If collision free, add to the graph
             if x_new is not None:
-                dist_to_goal = np.linalg.norm(np.array([x_new.x, x_new.y]) - np.array([x_goal.x, x_goal.y]))
+                x_new.parent = tree[nearest_idx]
+                tree.append(x_new)
+                dist_to_goal = np.linalg.norm(np.array([x_new.x, x_new.y]) - np.array([self.x_goal.x, self.x_goal.y]))
                 if dist_to_goal < self.goal_thresh:
                     break
         
@@ -370,12 +390,12 @@ class RRT(Node):
 
         # Find the path and visualize it
         path = np.array(self.find_path(tree, tree[-1]))
-        goal_dist = np.linalg.norm(path - np.array([x_goal.x, x_goal.y]).reshape(1,2), axis=1)
+        goal_dist = np.linalg.norm(path - np.array([self.x_goal.x, self.x_goal.y]).reshape(1,2), axis=1)
 
         # If this is positive, discard
         path_forward = path[1:]
         relative_dists = np.array([goal_dist[i] - goal_dist[i-1] for i in range(1, len(path))])
-        new_path = np.vstack((path[0], path_forward[relative_dists < 0], np.array([x_goal.x, x_goal.y])))
+        new_path = np.vstack((path[0], path_forward[relative_dists < 0], np.array([self.x_goal.x, self.x_goal.y])))
         new_path_ego = np.array([self.get_ego_coords_from_grid(node[0], node[1]) for node in new_path])
         self.visualize_path(new_path_ego)
 
@@ -389,7 +409,7 @@ class RRT(Node):
         # Set speed
         speed = 0.0;
         steer_angle_deg = abs(steering_angle) * 180/math.pi;
-        print(f"Steer angle: {steer_angle_deg}")
+        #print(f"Steer angle: {steer_angle_deg}")
   
         if steer_angle_deg >= 0 and steer_angle_deg < 10:
             speed = self.m_max_speed;
@@ -429,7 +449,8 @@ class RRT(Node):
         """
         idxs = np.where(self.inst_occ_grid < 0.5)
         pts = np.vstack(idxs)
-        chosen_idxs = np.random.choice(pts.shape[1], size=self.N, replace=False)
+        num_pts = min(pts.shape[1], self.N)
+        chosen_idxs = np.random.choice(pts.shape[1], size=num_pts, replace=False)
         x, y = pts[:, chosen_idxs]
         return (x, y)
 
