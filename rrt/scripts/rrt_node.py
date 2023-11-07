@@ -67,8 +67,8 @@ class RRT(Node):
             namespace='',
             parameters=[
                 ('map_res', 0.05),
-                ('grid_w', 2),
-                ("grid_h", 4),
+                ('grid_w',5),
+                ("grid_h", 2),
                 ("num_pts", 250),
                 ('step_size', 0.25),
                 ('goal_thresh', 0.05),
@@ -201,9 +201,17 @@ class RRT(Node):
 
     def find_goal_node(self):
         # Deepest point that is in the middle
-        free_space = np.where(self.inst_occ_grid<0.5)
-        y_goal = np.mean(free_space[1])
-        x_goal = np.argmax(self.inst_occ_grid[:, int(y_goal)])
+        free_space_x, free_space_y = np.where(self.inst_occ_grid<0.5)
+        occ_space_x, occ_space_y = np.where(self.inst_occ_grid<0.5)
+        x_goal = np.max(free_space_x)
+
+        # Find left wall and find right wall
+        occ_ys = self.inst_occ_grid[x_goal]
+        grad_y = np.gradient(occ_ys)
+        y_low = np.argmin(grad_y)
+        y_hi = np.argmax(grad_y)
+
+        y_goal = y_low+y_hi/2
         goal_node = RRTNode()
         goal_node.x = x_goal
         bounded_y = y_goal
