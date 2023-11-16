@@ -69,7 +69,7 @@ class RRT(Node):
                 ('map_res', 0.05),
                 ('grid_w',5),
                 ("grid_h", 2),
-                ("num_pts", 250),
+                ("num_pts", 100),
                 ('step_size', 0.25),
                 ('goal_thresh', 0.05),
                 ('max_speed', 2.0),
